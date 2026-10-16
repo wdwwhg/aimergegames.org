@@ -1,0 +1,213 @@
+{
+  "nav": {
+    "create": "Create",
+    "examples": "Examples",
+    "guides": "Guides",
+    "pricing": "Pricing",
+    "tools": "Tools",
+    "library": "My games",
+    "signIn": "Sign in",
+    "profile": "My profile"
+  },
+  "hero": {
+    "eyebrow": "A LITTLE OF THIS. A LITTLE OF THAT.",
+    "title": "AI Merge Games.",
+    "highlight": "Big what-if energy.",
+    "description": "Pick two games you love. Dream up something new. Turn their best ideas into your own playable 2D game.",
+    "note": "Original browser games inspired by gameplay. No game files or mods required.",
+    "status": "THE PLAYGROUND IS OPEN",
+    "statusDetail": "Try three playable examples. AI generation is coming soon.",
+    "studio": "Your next game starts here",
+    "studioSub": "Two inspirations. One original creation.",
+    "preview": "A small world. A big adventure.",
+    "previewSub": "Meet Moss Knight — a handcrafted example of what a mashup can be.",
+    "play": "Play this example",
+    "previewBadge": "PREMADE EXAMPLE"
+  },
+  "form": {
+    "first": "First inspiration",
+    "second": "Second inspiration",
+    "placeholderA": "e.g. Minecraft",
+    "placeholderB": "e.g. Elden Ring",
+    "idea": "Make it your own",
+    "ideaPlaceholder": "A cozy world to explore, with tiny bosses and a very brave knight…",
+    "style": "Game style",
+    "auto": "Surprise me",
+    "platformer": "Platform jumper",
+    "action": "Top-down adventure",
+    "survival": "Survive & collect",
+    "button": "Merge my games",
+    "closed": "AI generation opens soon",
+    "closedNote": "The generator isn't live yet. Explore the playable examples below while we get things ready.",
+    "cost": "1 generation · includes one automatic repair",
+    "try": "TRY A COMBINATION",
+    "invalid": "Choose two different games, with at least 2 characters each.",
+    "loading": "Starting your creation…",
+    "failed": "Something went wrong. Please try again.",
+    "signIn": "Sign in to create",
+    "pending": "In the queue",
+    "generating": "Dreaming up your game",
+    "validating": "Checking that it runs",
+    "repairing": "Making a small fix",
+    "success": "Ready to play — saved to My games",
+    "refunded": "Generation failed. Your generation credit has been returned.",
+    "resume": "You can leave this page. Your game will keep generating.",
+    "retry": "Try again"
+  },
+  "examples": {
+    "eyebrow": "A FEW WHAT-IFS, MADE PLAYABLE",
+    "title": "Unexpected combinations. Real little games.",
+    "description": "Handcrafted, playable examples. Jump in for free — no account needed.",
+    "all": "Explore the playground",
+    "play": "Play game",
+    "premade": "Premade example",
+    "back": "All examples",
+    "restart": "Restart",
+    "open": "Open game",
+    "loading": "Loading the player…",
+    "error": "The player couldn't connect. Check that the local game runner is running, then reload.",
+    "instructions": "HOW TO PLAY",
+    "fullscreen": "Expand player",
+    "close": "Close player"
+  },
+  "steps": {
+    "eyebrow": "FROM WHAT IF TO PRESS PLAY",
+    "title": "Your imagination does the matchmaking.",
+    "items": [
+      {
+        "number": "01",
+        "title": "Pick your inspirations",
+        "text": "A favorite world. A brilliant mechanic. Choose two games with ideas you'd love to bring together."
+      },
+      {
+        "number": "02",
+        "title": "Add your own twist",
+        "text": "Tell the AI what makes your mashup special. A cozy survival game? A platformer with a puzzle-solving side?"
+      },
+      {
+        "number": "03",
+        "title": "Make something playable",
+        "text": "When generation opens, create an original 2D game, play it in your browser, and keep it in your library."
+      }
+    ]
+  },
+  "features": {
+    "eyebrow": "SMALL GAMES. ROOM FOR BIG IDEAS.",
+    "title": "Less setup. More “one more try.”",
+    "items": [
+      {
+        "title": "Play right in your browser",
+        "text": "No engine to install. Our examples work with your keyboard or the touch controls on your phone."
+      },
+      {
+        "title": "Make it yours",
+        "text": "Combine gameplay ideas into original worlds built with simple shapes, fresh rules, and your own creative direction."
+      },
+      {
+        "title": "Keep the good ones",
+        "text": "Generated games will save privately to your account. Come back to play or download a standalone copy."
+      }
+    ]
+  },
+  "guides": {
+    "eyebrow": "A GOOD IDEA STARTS WITH A LITTLE CURIOSITY",
+    "title": "Meet the world of game mashups.",
+    "description": "Understand the trend, find useful tools, and learn how browser games differ from desktop mods.",
+    "read": "Read guide",
+    "all": "All guides",
+    "source": "SOURCE NOTES",
+    "updated": "Reviewed October 16, 2026"
+  },
+  "faq": {
+    "title": "A few things you might be wondering.",
+    "items": [
+      {
+        "q": "What are AI merge games?",
+        "a": "Here, it means original games that combine gameplay ideas from two inspirations. The phrase is also used for AI-assisted desktop crossover mods and for merging puzzles. This site focuses on original, playable browser games."
+      },
+      {
+        "q": "Can I merge the actual Minecraft and Elden Ring files?",
+        "a": "Our browser tool does not combine commercial game files. It will generate an original 2D game inspired by selected mechanics. Desktop mashup tools and mods follow a different process and may require games you own."
+      },
+      {
+        "q": "Is the AI generator available now?",
+        "a": "Not yet. You can play our three handcrafted examples today. Real generation will open after the model connection and end-to-end checks are complete."
+      },
+      {
+        "q": "Does it cost anything to play?",
+        "a": "The premade examples are free and need no account. We plan to offer two trial generations and optional credit packs when generation launches. Prices and purchases are not available yet."
+      },
+      {
+        "q": "Do the examples work on my phone?",
+        "a": "Yes. Use the touch controls below the game. A recent browser with Canvas worker support is required. Keyboard controls are available on desktop."
+      }
+    ]
+  },
+  "cta": {
+    "title": "Your next favorite game could start with a what if.",
+    "description": "Explore the playground. Find your favorite combination.",
+    "button": "Let's play something"
+  },
+  "footer": {
+    "tagline": "Two inspirations. A whole new way to play.",
+    "product": "Play & create",
+    "learn": "Stay curious",
+    "legal": "The essentials",
+    "privacy": "Privacy",
+    "terms": "Terms of use",
+    "refund": "Credits & refunds",
+    "about": "About"
+  },
+  "create": {
+    "title": "What if these two games met?",
+    "description": "Pick your inspirations and add a twist. Your next little world starts here."
+  },
+  "library": {
+    "title": "Your little worlds",
+    "description": "Your original games, saved privately. Pick up where you left off.",
+    "empty": "A whole lot of possibility.",
+    "emptyText": "Your generated games will live here. Until generation opens, discover what's possible in the example playground.",
+    "loading": "Opening your library…",
+    "error": "We couldn't load your games. Please try again.",
+    "delete": "Delete",
+    "confirm": "Delete this game from your library?",
+    "download": "Download game",
+    "saved": "Saved to your library",
+    "credits": "generations remaining",
+    "retry": "Reload library",
+    "create": "Create a game",
+    "signIn": "Sign in to see your games",
+    "deleteFailed": "The game couldn't be deleted. Please try again."
+  },
+  "pricing": {
+    "eyebrow": "A LITTLE PLAY GOES A LONG WAY",
+    "title": "Start curious. Keep creating.",
+    "description": "Play the examples for free today. When AI generation opens, start with a free trial and top up only when you need to.",
+    "free": "The playground",
+    "freePrice": "Free",
+    "freeText": "Three original examples. As many attempts as you like.",
+    "freeItems": [
+      "Play without an account",
+      "Keyboard and touch controls",
+      "Restart and explore anytime"
+    ],
+    "trial": "Your first creations",
+    "trialPrice": "2 trial generations",
+    "trialText": "Planned for launch. One generation includes an automatic repair if needed.",
+    "trialItems": [
+      "Original 2D browser games",
+      "Private game library",
+      "Standalone downloads"
+    ],
+    "packs": "More what-ifs",
+    "packsPrice": "Credit packs",
+    "packsText": "One-time generation packs. Quantities and prices will be announced after model costs are verified.",
+    "packsItems": [
+      "No subscription planned",
+      "One credit per new generation",
+      "Failed generations return their credit"
+    ],
+    "closed": "Purchases are not open yet",
+    "note": "No payment is collected. Pricing will be published before purchases become available."
+  }
+}

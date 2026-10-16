@@ -1,0 +1,126 @@
+{
+  "nav": {
+    "features": "Features",
+    "pricing": "Pricing",
+    "blog": "Blog"
+  },
+  "hero": {
+    "headline": "The headless engine for your next SaaS.",
+    "subheadline": "Auth, payments, subscriptions, credits, RBAC, CMS, and i18n — all pre-wired. Just build your product on top.",
+    "cta": "Get Started",
+    "secondary": "Dashboard"
+  },
+  "chips": {
+    "auth": "Authentication",
+    "payment": "Payments",
+    "subscription": "Subscriptions",
+    "credits": "Credits",
+    "rbac": "RBAC",
+    "i18n": "i18n",
+    "cms": "CMS",
+    "apikeys": "API Keys"
+  },
+  "features": {
+    "title": "Everything you need to ship",
+    "description": "Pre-wired business logic so you can focus on building your product.",
+    "auth": {
+      "title": "Authentication",
+      "description": "Email/password, Google, and GitHub OAuth — ready out of the box with session management and account linking."
+    },
+    "payment": {
+      "title": "Payments",
+      "description": "Stripe, PayPal, Alipay, WeChat Pay — checkout, subscriptions, webhooks, and order management."
+    },
+    "rbac": {
+      "title": "Roles & Permissions",
+      "description": "Fine-grained RBAC with wildcard matching. Full admin panel for managing users, roles, and permissions."
+    },
+    "i18n": {
+      "title": "Internationalization",
+      "description": "English and Chinese built-in with locale-aware routing. Easy to extend with additional languages."
+    },
+    "cms": {
+      "title": "Content Management",
+      "description": "Categories and posts with full CRUD, status management, and admin panel — build your blog or docs."
+    },
+    "credits": {
+      "title": "Credit System",
+      "description": "FIFO consumption, expiration, auto-grant on signup, and revocation — ready for usage-based billing."
+    }
+  },
+  "pricing": {
+    "title": "Pricing",
+    "description": "Choose the plan that works for you.",
+    "monthly": "Monthly",
+    "yearly": "Yearly",
+    "lifetime": "Lifetime",
+    "popular": "Popular",
+    "best_value": "Best value",
+    "buy_lifetime": "Buy once",
+    "starter": "Starter",
+    "starter_desc": "For individuals",
+    "pro": "Pro",
+    "pro_desc": "For growing teams",
+    "enterprise": "Enterprise",
+    "enterprise_desc": "For large organizations",
+    "feature_1_project": "1 project",
+    "feature_5k_credits": "5,000 credits",
+    "feature_email_support": "Email support",
+    "feature_unlimited_projects": "Unlimited projects",
+    "feature_50k_credits": "50,000 credits",
+    "feature_priority_support": "Priority support",
+    "feature_api_access": "API access",
+    "feature_everything_pro": "Everything in Pro",
+    "feature_unlimited_credits": "Unlimited credits",
+    "feature_dedicated_support": "Dedicated support",
+    "feature_custom_integrations": "Custom integrations"
+  },
+  "faq": {
+    "title": "Frequently asked questions",
+    "description": "Everything you need to know before getting started.",
+    "stack": {
+      "question": "What's the tech stack?",
+      "answer": "Next.js 16 with the App Router, React 19, TypeScript strict mode, Tailwind CSS 4, shadcn/ui, Drizzle ORM, and better-auth. Every piece of business logic is inlined — no external packages for payment, email, storage, or AI."
+    },
+    "payment": {
+      "question": "Which payment providers are supported?",
+      "answer": "Stripe, PayPal, Creem, Alipay, and WeChat Pay out of the box. The PaymentManager abstraction makes it straightforward to add more providers by implementing a single interface."
+    },
+    "database": {
+      "question": "Which databases can I use?",
+      "answer": "Drizzle ORM handles PostgreSQL, MySQL, SQLite, Turso, and Cloudflare D1. Switch providers by editing DATABASE_PROVIDER in your .env — the schema templates and drizzle config adapt automatically."
+    },
+    "customize": {
+      "question": "How customizable is the landing page?",
+      "answer": "The src/blocks/ directory ships with demo sections — they're designed to be rewritten per project. The durable primitives live in src/components/, so your rebrand touches blocks and translations, not the chassis."
+    },
+    "license": {
+      "question": "Can I use this for commercial projects?",
+      "answer": "Yes. ShipAny Next is built for shipping production SaaS products. You own the code after cloning — no per-seat fees, no runtime dependencies on our infrastructure."
+    }
+  },
+  "blog": {
+    "title": "From the blog",
+    "description": "Product updates, guides, and engineering notes from the team.",
+    "view_all": "View all posts"
+  },
+  "cta": {
+    "headline": "Ready to ship your SaaS?",
+    "subheadline": "Stop wiring auth, payments, and RBAC from scratch. Start with ShipAny Next and build what actually makes your product unique.",
+    "button": "Get started for free"
+  },
+  "footer": {
+    "tagline": "Ship faster, iterate smarter.",
+    "feature": "Feature",
+    "product": "Product",
+    "resources": "Resources",
+    "legal": "Legal",
+    "privacy": "Privacy Policy",
+    "terms": "Terms of Service",
+    "settings": "Settings",
+    "admin": "Admin Panel",
+    "blog": "Blog",
+    "docs": "Documentation",
+    "github": "GitHub"
+  }
+}

@@ -1,0 +1,29 @@
+.next
+.vercel
+.vscode
+.claude
+.agents
+.codex
+.cursor
+data
+node_modules
+docs
+.git
+drizzle
+.env*
+!.env.example
+*.log
+.DS_Store
+
+# Runtime image uploads (no-storage local fallback)
+public/uploads
+dist
+wrangler.jsonc
+
+# Local caches, test databases and browser verification output.
+.pnpm-store
+.pnpm-home
+.artifacts
+.test-data
+output
+.npmrc

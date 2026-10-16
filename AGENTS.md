@@ -1,0 +1,351 @@
+# ShipAny Next — Agent Instructions
+
+This is a **headless SaaS engine** — pre-wired business logic (payments, credits, subscriptions, auth, RBAC) with minimal UI. Users build their product pages on top of it.
+
+## Tech Stack
+
+- **Framework:** Next.js 15 (App Router, React 19, TypeScript strict)
+- **UI:** shadcn/ui v4 (Base Nova style, Tailwind CSS 4, oklch colors)
+- **Auth:** better-auth with Drizzle adapter
+- **Database:** Drizzle ORM — supports PostgreSQL, MySQL, SQLite, Turso, Cloudflare D1
+- **All code is self-contained** — no external packages for business logic. Payment, email, storage, AI, auth, and utils are inlined in `src/core/` and `src/lib/`.
+
+## Commands
+
+- `pnpm dev` — Dev server
+- `pnpm build` — Production build (always verify after changes)
+- `pnpm db:setup` — Copy schema template based on `DATABASE_PROVIDER` (run once after clone)
+- `pnpm db:push` — Push schema to database (development — direct sync, may lose data)
+- `pnpm db:generate` — Generate SQL migration files (production — safe, reviewable)
+- `pnpm db:migrate` — Run pending migrations
+- `pnpm db:studio` — Drizzle Studio GUI
+
+### First-time setup
+
+```bash
+pnpm install              # install dependencies (postinstall auto-copies sqlite schema)
+cp .env.example .env.development   # then set DATABASE_PROVIDER, DATABASE_URL, AUTH_SECRET, etc.
+pnpm db:setup             # copy the matching schema template (if not sqlite)
+pnpm db:push              # create tables
+pnpm dev                  # start dev server
+```
+
+**Env files:** copy `.env.example` → `.env.development` for local dev (gitignored). The loader
+(`scripts/with-env.ts`) and `next dev` both resolve `.env.{NODE_ENV}` before `.env.local`/`.env`,
+so `.env.development` is the canonical local file. `.env.example` is the committed template — keep
+it in sync when adding a new env var to `src/config/index.ts`.
+
+### Schema change workflow
+
+**Development** (fast iteration, ok to lose data):
+
+1. Edit `src/config/db/schema.ts`
+2. `pnpm db:push`
+
+**Production** (safe, reversible):
+
+1. Edit `src/config/db/schema.ts`
+2. `pnpm db:generate` — creates migration SQL in `/drizzle/`
+3. Review the generated SQL — check for destructive operations (DROP COLUMN, etc.)
+4. `pnpm db:migrate` — apply to database
+
+**Rule:** Agent should use `db:push` during development. For production deployments, always use `db:generate` + `db:migrate` and ask the user to review the migration before applying.
+
+## Architecture
+
+```
+src/
+├── core/                        # Infrastructure — every project uses this
+│   ├── db/                      # Multi-DB (PostgreSQL, MySQL, SQLite, D1)
+│   ├── auth/                    # better-auth (server + client) + RBAC
+│   ├── i18n/                    # next-intl (routing, navigation, request)
+│   ├── payment/                 # Payment providers (Stripe, PayPal, Creem)
+│   ├── email/                   # Email providers (Resend)
+│   ├── storage/                 # Storage providers (S3, R2)
+│   └── ai/                     # AI providers (Replicate, Gemini, Fal, Kie)
+│
+├── modules/                     # Business logic — independently removable
+│   ├── payment/service.ts       # Checkout, webhook, order + subscription + credit atomicity
+│   ├── subscriptions/service.ts # Subscription lifecycle (CRUD, status transitions)
+│   ├── credits/service.ts       # FIFO consumption, expiration, revocation, auto-grant
+│   ├── apikeys/service.ts       # API key CRUD + validation
+│   ├── rbac/service.ts          # Role/permission checks, wildcard matching
+│   ├── config/service.ts        # DB key-value config with 1h cache
+│   └── ai-tasks/service.ts      # AI task tracking with credit deduction/revocation
+│
+├── config/
+│   ├── index.ts                 # All env vars (app, db, auth, stripe, resend, storage, ai, locale)
+│   ├── db/schema.ts             # All table definitions (19 built-in + custom tables)
+│   └── locale/                  # i18n locale config + translation JSON files
+│       ├── index.ts             # Locales, default locale, message paths
+│       └── messages/{en,zh}/    # Translation files per locale
+│
+├── app/
+│   ├── sitemap.ts               # Sitemap (static pages + blog posts, hreflang)
+│   ├── robots.ts                # Robots rules (blocks /admin, /settings, /api)
+│   ├── [locale]/                # Locale-aware pages
+│   │   ├── layout.tsx           # Root layout: html/body, fonts, providers
+│   │   │                        #   (no app/layout.tsx — getLocale() there would
+│   │   │                        #   force dynamic rendering on every page)
+│   │   ├── page.tsx             # Homepage (SSG + ISR)
+│   │   ├── (auth)/              # Sign-in, sign-up
+│   │   └── dashboard/           # Dashboard pages
+│   └── api/                     # REST endpoints (NOT under [locale])
+│
+├── blocks/                      # Zero-config page sections: read i18n, wire data into components
+│                                # e.g. hero, features, pricing-section, header, footer
+├── components/                  # Reusable UI: all content via props, no i18n reads
+│   │                            # e.g. site-header, site-footer, pricing, app-sidebar
+│   └── ui/                      # shadcn/ui primitives (add via `npx shadcn add`)
+└── lib/                         # Utilities (hash, resp, cookie, cache, rate-limit, time, env, cn)
+```
+
+## Module System
+
+Every module in `src/modules/` is a **standalone service file** that:
+
+- Imports only from `@/core/`, `@/config/`, `@/lib/`, or `drizzle-orm`
+- Exports pure functions (no React, no route handlers)
+- Can be deleted without breaking other modules
+
+### How modules connect to routes
+
+```
+User Request → API Route (src/app/api/*) → Module Service (src/modules/*) → Database
+```
+
+API routes are thin wrappers — they check auth, parse params, call the service, return JSON.
+
+### Module dependency rules
+
+- Modules depend on `core/`, `config/`, `lib/`, and `drizzle-orm` — never on other modules' internals
+- Exception: `payment/service.ts` calls `credits/` and `subscriptions/` because payment success triggers credit granting and subscription creation. This is the ONE allowed cross-module dependency.
+- `ai-tasks/service.ts` calls `credits/` for consumption/revocation. This is the second.
+- All other modules are fully independent.
+
+## Key Patterns
+
+### i18n (translations)
+
+**Server components:**
+
+```tsx
+import { getTranslations } from 'next-intl/server';
+
+export default async function Page() {
+  const t = await getTranslations('common');
+  return <h1>{t('sign.sign_in_title')}</h1>;
+}
+```
+
+**Client components:**
+
+```tsx
+'use client';
+
+import { useLocale, useTranslations } from 'next-intl';
+
+export function MyForm() {
+  const t = useTranslations('common');
+  const locale = useLocale();
+  return <button>{t('nav.get_started')}</button>;
+}
+```
+
+**Adding translations:** Add JSON files in `src/config/locale/messages/{en,zh}/`, then register the path in `localeMessagesPaths` in `src/config/locale/index.ts`.
+
+**Locale-aware links:** Use `Link` from `@/core/i18n/navigation` instead of `next/link` for pages — it auto-prefixes the locale.
+
+### Server components (default)
+
+```tsx
+import { headers } from 'next/headers';
+
+import { getAuth } from '@/core/auth';
+
+export default async function Page() {
+  const auth = getAuth();
+  const session = await auth.api.getSession({ headers: await headers() });
+  // ...
+}
+```
+
+### Client components (when needed)
+
+```tsx
+'use client';
+
+import { useSession } from '@/core/auth/client';
+```
+
+### API routes
+
+```ts
+import { headers } from 'next/headers';
+
+import { getAuth } from '@/core/auth';
+import { respData, respErr } from '@/lib/resp';
+
+export async function GET() {
+  const auth = getAuth();
+  const session = await auth.api.getSession({ headers: await headers() });
+  if (!session?.user) return respErr('Unauthorized');
+  // call module service...
+  return respData(result);
+}
+```
+
+### Database queries
+
+```ts
+import { eq } from 'drizzle-orm';
+
+import { db } from '@/core/db';
+import { someTable } from '@/config/db/schema';
+
+const rows = await db()
+  .select()
+  .from(someTable)
+  .where(eq(someTable.userId, id));
+```
+
+### shadcn/ui v4 (Base Nova)
+
+- **No `asChild` prop.** Use `className={cn(buttonVariants())}` on Link instead.
+- Add components: `npx shadcn add button card dialog`
+- Theme colors in `src/app/globals.css` as CSS variables (oklch)
+
+### Blocks vs Components
+
+- **`src/blocks/`** — zero-config page sections. Read i18n (`getTranslations`/`useTranslations`), build the content config, and pass it to a component. Drop into pages as `<Hero />`, `<Pricing />`, `<Header />`, `<Footer />` with no props.
+- **`src/components/`** — reusable UI. All content arrives via props; no i18n reads inside. Covers shadcn primitives (`components/ui/`), marketing shells (`SiteHeader`, `SiteFooter`), authenticated-app shells (`AppSidebar`, `AppLayout`), and pure primitives like `PricingTable`.
+- **Rule:** a file reads translations → block. A file takes all content via props → component.
+- **Pattern:** pages consume only blocks. Blocks read i18n and configure components. Components render — they don't know the app's content.
+- **Naming:** `site-*` = public marketing chrome (`SiteHeader`, `SiteFooter`). `app-*` = authenticated-app chrome (`AppSidebar`, `AppLayout`). These are separate surfaces — don't merge them.
+
+### Template Philosophy: Blocks Are Disposable, Components Are Durable
+
+This repo ships with a default landing page (`blocks/header`, `hero`, `features`, `pricing`, `footer`) so a fresh clone has something to render. **That content is demo material — it's expected to be rewritten for any real project.**
+
+When starting a new project:
+
+1. **Keep** `src/components/*` and `src/components/ui/*` — they're the durable primitives (`PricingTable`, `SiteHeader`, `SiteFooter`, `AppSidebar`, shadcn UI). These are the chassis.
+2. **Rewrite** `src/blocks/*` — delete the demo blocks, write new ones that wire the user's real content and i18n into the primitives. Or compose fresh sections directly.
+3. **Rewrite** `src/app/[locale]/page.tsx` — it's ~17 lines of pure composition. Recompose from the new blocks.
+4. **Rewrite** `src/config/locale/messages/{en,zh}/landing.json` — the translations that feed the blocks.
+
+The `/quick-start` and `/clone-website` skills automate this workflow.
+
+The split is not cosmetic — it's **what survives a rebrand**. Primitives survive; block content doesn't.
+
+## Adding a New Feature
+
+1. **Need new DB tables?** Add to `src/config/db/schema.ts` (under the "Custom tables" section), run `pnpm db:push`
+2. **Create module service:** `src/modules/<feature>/service.ts` — pure business logic
+3. **Create API route:** `src/app/api/<feature>/route.ts` — thin wrapper calling the service
+4. **Create page:** `src/app/[locale]/dashboard/<feature>/page.tsx` — `"use client"`, fetch from API
+5. **Add translations:** Update `src/config/locale/messages/{en,zh}/dashboard.json`
+6. **Add nav entry:** Update `navItems` in `src/app/[locale]/dashboard/layout.tsx`
+7. **Need a static page?** Add MDX at `src/app/[locale]/(pages)/<slug>/page.mdx`
+
+Or use skills: `/new-module`, `/new-page`, `/new-static-page`
+
+## Agent Skills
+
+Project skills live in `.claude/skills/` (canonical) with cross-agent symlinks
+at `.agents/skills`, `.codex/skills`, and `.cursor/skills` — all four resolve to
+the same files (SKILL.md open standard, agentskills.io). If your agent runtime
+doesn't auto-discover skills, read `.claude/skills/<name>/SKILL.md` and follow
+it when the task matches:
+
+| Skill             | When to use                                                                                                                         |
+| ----------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| `quick-start`     | Build a complete SaaS project from a brief/reference URL                                                                            |
+| `clone-website`   | Clone/rebuild an existing website pixel-perfect                                                                                     |
+| `new-module`      | New backend service + API following the module pattern                                                                              |
+| `new-page`        | New dashboard page with API wiring + nav entry                                                                                      |
+| `new-static-page` | Static MDX page (legal, about, etc.)                                                                                                |
+| `generate-image`  | AI-generate a decorative image for a page/block                                                                                     |
+| `security-scan`   | **Before every git commit** — secrets, vulns, ignore gaps                                                                           |
+| `launch-audit`    | Whole-project sweep on one axis — responsive, light/dark theme, SEO, performance (Lighthouse), or security; run `all` before deploy |
+| `sync-upstream`   | Pull latest template updates; local changes win on conflict                                                                         |
+
+## Inlined Modules (src/core/ and src/lib/)
+
+All functionality is self-contained — no external packages needed.
+
+| Location                 | Key Exports                                                                      |
+| ------------------------ | -------------------------------------------------------------------------------- |
+| `@/core/payment`         | `PaymentManager`, `StripeProvider`, `PayPalProvider`, `CreemProvider`            |
+| `@/core/email`           | `EmailManager`, `ResendProvider`                                                 |
+| `@/core/storage`         | `StorageManager`, `S3Provider`, `R2Provider`                                     |
+| `@/core/ai`              | `AIManager`, `ReplicateProvider`, `GeminiProvider`, `FalProvider`, `KieProvider` |
+| `@/core/auth/rbac`       | `matchPermission`, `matchAnyPermission`, `ROLES`                                 |
+| `@/core/db`              | `db()` singleton, `createDb` (multi-dialect)                                     |
+| `@/lib/hash`             | `getUuid`, `getSnowId`, `getUniSeq`, `getNonceStr`, `md5`                        |
+| `@/lib/resp`             | `respData`, `respOk`, `respErr`                                                  |
+| `@/lib/cookie`           | `getCookie`, `setCookie`, `getCookieFromCtx`                                     |
+| `@/lib/rate-limit`       | `enforceMinIntervalRateLimit`                                                    |
+| `@/lib/cache`            | `cacheGet`, `cacheSet`, `cacheRemove`                                            |
+| `@/lib/time`             | `getTimestamp`, `getIsoTimestr`                                                  |
+| `@/core/i18n/config`     | `routing` (locale routing config)                                                |
+| `@/core/i18n/navigation` | `Link`, `useRouter`, `usePathname` (locale-aware)                                |
+
+## Database Schema (19 tables)
+
+**`schema.ts` is gitignored** — it's the user's working copy generated from a template.
+
+Three dialect templates are committed to git:
+
+- `src/config/db/schema.sqlite.ts` — SQLite (default)
+- `src/config/db/schema.postgres.ts` — PostgreSQL
+- `src/config/db/schema.mysql.ts` — MySQL
+
+**Setup:** Copy the matching template into `schema.ts`, set `DATABASE_PROVIDER` in `.env.local`, run `pnpm db:push`. `drizzle.config.ts` reads the dialect automatically.
+
+Each template exports **strong types** for all tables (`User`, `NewUser`, `Order`, `NewOrder`, etc.) via `$inferSelect` / `$inferInsert`. Use these in service functions instead of `any`.
+
+**Auth:** user, session, account, verification
+**Business:** order, subscription, credit, apikey
+**RBAC:** role, permission, rolePermission, userRole
+**Content:** post, taxonomy, config
+**AI:** aiTask, chat, chatMessage
+
+## Environment Variables
+
+```env
+# Required
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+NEXT_PUBLIC_APP_NAME=My App
+DATABASE_PROVIDER=sqlite
+DATABASE_URL=file:data/local.db
+AUTH_SECRET=generate-with-openssl-rand-base64-32
+
+# App (optional)
+NEXT_PUBLIC_APP_DESCRIPTION=
+NEXT_PUBLIC_APP_LOGO=
+NEXT_PUBLIC_DEFAULT_LOCALE=en
+
+# Recommended: encrypt admin-settings secrets (AES-256-GCM) in the config table.
+# Unset = plaintext storage. Once set, keep it stable — rotating or removing it
+# orphans already-encrypted values (they fall back to env values).
+CONFIG_ENCRYPTION_KEY=
+```
+
+**Provider credentials live in the admin panel, not env.** Payments (Stripe/
+Creem/PayPal/Alipay/WeChat), OAuth (Google/GitHub/One-Tap), email (Resend),
+storage (R2), AI (Replicate/Gemini/Fal), and analytics are configured at
+`/admin/settings` and stored in the `config` table (encrypted when
+`CONFIG_ENCRYPTION_KEY` is set). Resolution is `{ ...envConfigs, ...dbConfigs }`
+— same-named env vars still work as fallbacks, but database values win.
+Keep `.env.example` minimal; don't add provider keys to it.
+
+## Critical Rules
+
+1. **Don't import between modules** (except the documented payment→credits/subscriptions dependency)
+2. **Don't add `"use client"` to server components** — split into server page + client form instead
+3. **Don't edit `components/ui/*` manually** — use `npx shadcn add`
+4. **Don't hardcode app name** — use `envConfigs.app_name` from `@/config`
+5. **Always verify `pnpm build` passes** after making changes
+6. **Return `respData`/`respErr`** from API routes (not raw `NextResponse.json`)
+7. **Run the `security-scan` skill before every `git commit`** — it checks for leaked secrets, injection/XSS/logic vulnerabilities in the diff, and `.gitignore`/`.dockerignore` gaps. HIGH findings block the commit.
