@@ -3,9 +3,8 @@ import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { oneTap } from 'better-auth/plugins';
 
 import { db } from '@/core/db';
-import type { EmailProvider } from '@/core/email';
-import { CloudflareEmailProvider } from '@/core/email/cloudflare';
-import { ResendProvider } from '@/core/email/resend';
+import { getConfiguredEmailProvider as getEmailProvider } from '@/core/email/configured';
+import { ResetPassword } from '@/core/email/templates/reset-password';
 import { VerifyEmail } from '@/core/email/templates/verify-email';
 import { AUTH_SECRET_PLACEHOLDER, envConfigs } from '@/config';
 import * as schema from '@/config/db/schema';
@@ -105,37 +104,6 @@ function getSocialSignature(configs: Record<string, string>) {
     // credentials still rebuilds authInstance (which owns the plugin list).
     configs.google_one_tap_enabled || '',
   ].join('|');
-}
-
-/**
- * Build the configured email provider from admin settings.
- * Returns null if the chosen provider is not fully configured.
- */
-function getEmailProvider(
-  configs: Record<string, string>
-): { provider: EmailProvider; from: string } | null {
-  const selected = configs.email_provider || 'resend';
-
-  if (selected === 'cloudflare') {
-    const apiToken = configs.cloudflare_email_api_token;
-    const accountId = configs.cloudflare_email_account_id;
-    const from = configs.cloudflare_email_sender_email;
-    if (!apiToken || !accountId || !from) return null;
-    return {
-      provider: new CloudflareEmailProvider({
-        apiToken,
-        accountId,
-        defaultFrom: from,
-      }),
-      from,
-    };
-  }
-
-  // Default: resend
-  const apiKey = configs.resend_api_key;
-  const from = configs.resend_sender_email;
-  if (!apiKey || !from) return null;
-  return { provider: new ResendProvider({ apiKey, defaultFrom: from }), from };
 }
 
 /** Check whether email sending is available for the selected provider */
@@ -312,10 +280,7 @@ export function getAuth(configs?: Record<string, string>) {
           to: user.email,
           subject: `Reset your ${appName} password`,
           text: `${greeting}\n\nYou recently requested to reset your password for ${appName}. Use the link below to choose a new one:\n\n${url}\n\nThis link will expire in 1 hour. If you didn't request a password reset, you can safely ignore this email.`,
-          html: `<p>${greeting}</p>
-<p>You recently requested to reset your password for <strong>${appName}</strong>. Click the link below to choose a new one:</p>
-<p><a href="${url}">Reset your password</a></p>
-<p>This link will expire in 1 hour. If you didn't request a password reset, you can safely ignore this email.</p>`,
+          react: ResetPassword({ appName, name: user.name, url }),
         });
         if (!result.success) {
           console.error('[auth] sendResetPassword failed:', result.error);

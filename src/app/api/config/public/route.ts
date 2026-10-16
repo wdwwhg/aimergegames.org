@@ -1,3 +1,4 @@
+import { getConfiguredEmailProvider } from '@/core/email/configured';
 import { respData } from '@/lib/resp';
 import { getAllConfigs, filterPublicConfigs } from '@/modules/config/service';
 
@@ -34,18 +35,10 @@ const publicKeys = [
   'plausible_src',
 ];
 
-function isEmailSendingConfigured(configs: Record<string, string>): boolean {
-  const provider = configs.email_provider || 'resend';
-  if (provider === 'cloudflare') {
-    return !!configs.cloudflare_email_api_token && !!configs.cloudflare_email_account_id && !!configs.cloudflare_email_sender_email;
-  }
-  return !!configs.resend_api_key && !!configs.resend_sender_email;
-}
-
 export async function GET() {
   const configs = await getAllConfigs();
   const result = filterPublicConfigs(configs, publicKeys);
-  const emailConfigured = isEmailSendingConfigured(configs);
+  const emailConfigured = getConfiguredEmailProvider(configs) !== null;
   result.password_reset_enabled =
     configs.email_auth_enabled !== 'false' && emailConfigured
       ? 'true'

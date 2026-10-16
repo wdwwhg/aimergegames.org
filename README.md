@@ -154,6 +154,20 @@ The generated contract is `createGame({canvas, ctx, width, height})`, returning 
 
 Downloads are **one self-contained HTML file**, containing the runtime, code and controls. Open it in a current browser with Canvas worker support.
 
+## Account email
+
+Production uses Cloudflare Email Service through the native `EMAIL` binding on the main app. The binding permits only `noreply@aimergegames.org` as sender. It is not added to the task consumer, validator or game player, and no email API token is stored for this integration. Admin settings select `email_provider=cloudflare` and `cloudflare_email_sender_email=noreply@aimergegames.org`.
+
+The sending domain was onboarded on October 17, 2026 with `wrangler email sending enable aimergegames.org`. Public DNS checks found the Cloudflare return-path SPF record, DKIM key and DMARC policy. This configures outbound sending; it does not create an inbox or incoming-mail forwarding.
+
+Authentication, public capability flags and **Admin → Settings → Email → Cloudflare Email → Test** use the same provider selection. On Workers the native binding takes precedence; outside Cloudflare the existing token/account REST transport and Resend option remain available. Password reset becomes available when a sender and transport are configured. Requiring email verification remains controlled by the existing `email_verification_enabled` setting and was not enabled during this integration. Enable it only after confirming delivery and the verification journey.
+
+Password-reset and verification templates render user text through React escaping. Native sends have a 20-second deadline, safe provider errors and no automatic retry, because a timed-out call may still have accepted a message. An administrator test reports the provider message ID; that is acceptance by the sending service, not proof of inbox placement.
+
+Run `pnpm test:email` for six tests covering sender/transport availability, multiple recipients, rendered templates, safe failures, no retry on timeout, header newlines, HTML escaping and actual signup-verification/password-reset callbacks in an isolated local database with a fake binding. These tests send no real emails. [Workers sending API](https://developers.cloudflare.com/email-service/api/send-emails/workers-api/) and [pricing](https://developers.cloudflare.com/email-service/platform/pricing/) were reviewed October 17, 2026. The existing Workers Paid plan includes 3,000 outbound emails per billing month, then $0.35 per 1,000; sends to verified destination addresses have separate free treatment. No new subscription was created.
+
+Production acceptance on October 17, 2026: after the owner explicitly authorized one message, the deployed administrator test sent exactly one email from the configured sender to the owner's administrator mailbox and returned a successful provider message ID. The public configuration reported `password_reset_enabled=true` and `email_verification_enabled=false`, with no secret fields. This confirms sending-service acceptance; inbox placement still depends on recipient-side filtering. No owner password, verification state or authentication secrets were changed.
+
 ## Payments
 
 The public catalog in `src/config/pricing.ts` is intentionally empty. The old demo subscriptions are disabled.

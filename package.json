@@ -34,6 +34,7 @@
     "cf:deploy:tasks": "wrangler deploy --config cloudflare/tasks.wrangler.jsonc",
     "cf:deploy:validator": "wrangler deploy --config cloudflare/validator.wrangler.jsonc",
     "test:game-validator": "node --import tsx tests/game-validator.mjs",
+    "test:email": "tsx --test tests/email.test.ts",
     "test:game-d1": "node --import tsx tests/game-d1.mjs",
     "db:generate:cloudflare": "drizzle-kit generate --config cloudflare/drizzle.config.ts",
     "db:migrate:cloudflare": "wrangler d1 migrations apply aimergegames-db --remote"

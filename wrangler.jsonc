@@ -28,6 +28,12 @@
   "keep_names": false,
   "routes": [{ "pattern": "aimergegames.org", "custom_domain": true }],
   "preview_urls": false,
+  "send_email": [
+    {
+      "name": "EMAIL",
+      "allowed_sender_addresses": ["noreply@aimergegames.org"],
+    },
+  ],
   "queues": {
     "producers": [
       { "binding": "GAME_TASK_QUEUE", "queue": "aimergegames-generation" },

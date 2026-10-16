@@ -12,7 +12,7 @@ import { FalProvider } from '@/core/ai/fal';
 import { requestGameModel } from '@/core/ai/game-model';
 import { ReplicateProvider } from '@/core/ai/replicate';
 import { AIMediaType } from '@/core/ai/types';
-import { CloudflareEmailProvider } from '@/core/email/cloudflare';
+import { getConfiguredEmailProvider } from '@/core/email/configured';
 import { ResendProvider } from '@/core/email/resend';
 import {
   AlipayProvider,
@@ -123,18 +123,17 @@ async function testCloudflareEmail(
   inputs: Record<string, string>,
   configs: Record<string, string>
 ): Promise<TestResult> {
-  const missing = need(configs, [
-    'cloudflare_email_api_token',
-    'cloudflare_email_account_id',
-    'cloudflare_email_sender_email',
-  ]);
-  if (missing) return { success: false, message: missing };
-
-  const provider = new CloudflareEmailProvider({
-    apiToken: configs.cloudflare_email_api_token,
-    accountId: configs.cloudflare_email_account_id,
-    defaultFrom: configs.cloudflare_email_sender_email,
+  const selected = getConfiguredEmailProvider({
+    ...configs,
+    email_provider: 'cloudflare',
   });
+  if (!selected)
+    return {
+      success: false,
+      message:
+        'Configure a sender and the Cloudflare Worker email binding, or an API token and account ID.',
+    };
+  const { provider } = selected;
 
   const result = await provider.sendEmail({
     to: inputs.to,
@@ -149,9 +148,7 @@ async function testCloudflareEmail(
   return {
     success: true,
     message: 'Email sent successfully',
-    details: result.messageId
-      ? { 'Delivered to': result.messageId }
-      : undefined,
+    details: result.messageId ? { 'Message ID': result.messageId } : undefined,
   };
 }
 

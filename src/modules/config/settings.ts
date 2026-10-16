@@ -142,7 +142,8 @@ export function getSettingGroups(): SettingGroup[] {
     {
       name: 'cloudflare_email',
       title: 'Cloudflare Email',
-      description: 'Cloudflare Email Service',
+      description:
+        'Uses the Worker email binding on Cloudflare; no API token is needed there. Other hosts require an API token and account ID. Verify your sending domain before testing.',
       tab: 'email',
     },
 
