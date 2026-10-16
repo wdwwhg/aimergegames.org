@@ -66,12 +66,13 @@ export async function ExampleSection({
   standalone?: boolean;
 }) {
   const t = await getTranslations('merge');
+  const Heading = standalone ? 'h1' : 'h2';
   return (
     <section className="section-wrap" id="examples">
       <div className="section-heading">
         <div>
           <span className="eyebrow">{t('examples.eyebrow')}</span>
-          <h2>{t('examples.title')}</h2>
+          <Heading>{t('examples.title')}</Heading>
           <p>{t('examples.description')}</p>
         </div>
         {!standalone && (

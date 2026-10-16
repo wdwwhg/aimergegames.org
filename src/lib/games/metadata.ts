@@ -16,13 +16,13 @@ export function publicMetadata(
       title,
       description,
       url: `${envConfigs.app_url}${path}`,
-      images: [{ url: '/opengraph-image', width: 1200, height: 630 }],
+      images: [{ url: '/og.png', width: 1200, height: 630 }],
     },
     twitter: {
       card: 'summary_large_image',
       title,
       description,
-      images: ['/opengraph-image'],
+      images: ['/og.png'],
     },
   };
 }

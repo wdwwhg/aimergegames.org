@@ -18,7 +18,9 @@ drizzle
 # Runtime image uploads (no-storage local fallback)
 public/uploads
 dist
-wrangler.jsonc
+.open-next
+.wrangler
+.dev.vars*
 
 # Local caches, test databases and browser verification output.
 .pnpm-store

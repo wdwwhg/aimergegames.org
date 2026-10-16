@@ -13,6 +13,37 @@ An English-first playground for original 2D browser game mashups, built on the e
 
 The examples are original games inspired by gameplay mechanics. This application does not combine commercial game files, provide installed-game mods, or redistribute third-party assets.
 
+## Cloudflare deployment
+
+The public preview is hosted on Cloudflare Workers with a dedicated D1 database:
+
+- Website: https://aimergegames.org
+- Isolated player: https://aimergegames-player.jokemike75.workers.dev
+- App configuration: `wrangler.jsonc`; player configuration: `cloudflare/player.wrangler.jsonc`.
+- Public prerendered pages use a dedicated Cloudflare KV incremental cache; account and private game data use D1.
+
+Authenticate with `pnpm exec wrangler login`, then deploy changes:
+
+```text
+pnpm cf:build
+pnpm cf:deploy:player
+pnpm cf:deploy
+```
+
+The project uses the patched Next.js 16.4.1 release. A tracked pnpm patch omits native Sharp from the Worker bundle; site images and the social preview are static assets. The postbuild step inlines the middleware manifest required by the adapter. These compatibility changes do not affect the normal local Node build.
+
+Both Workers set `keep_names: false`: runtime functions are serialized into the sandbox document, so bundler-injected name helpers must not enter their function bodies. Keep the player on its separate origin.
+
+The current deployment uses Workers Free. Before KV was enabled, runtime tests encountered CPU-limit errors. After caching was enabled, live signup, sign-in, private library APIs and the closed-generation response passed. Free still allows only 10 ms CPU per request, so heavier traffic or cold rendering can exceed its limits; consider Workers Paid if those errors recur. Upgrading is a separate billing action requiring the owner's approval; deployment scripts never change the plan. See [Cloudflare pricing](https://developers.cloudflare.com/workers/platform/pricing/).
+
+The build script takes public URLs and the database provider from `wrangler.jsonc` so browser code and server bindings agree. Authentication and configuration encryption use independent production secrets stored in Cloudflare (`AUTH_SECRET`, `CONFIG_ENCRYPTION_KEY`); never copy local development secrets into the deployment or commit them. Preserve production secrets across deployments.
+
+Generate schema changes with `pnpm db:generate:cloudflare`, review the SQL in `cloudflare/migrations`, then apply approved migrations with `pnpm db:migrate:cloudflare`. Never upload a development database. This deployment's initial database contains no local fixture accounts, model keys, or payment keys.
+
+Verify D1 config encryption and writes locally with `pnpm exec wrangler d1 migrations apply aimergegames-db --local`, then `pnpm test:cloudflare-db`. Run `pnpm test:cloudflare-browser` to check public layouts, examples and indexing URLs. The optional `node scripts/cloudflare-check.mjs --account` also creates a disposable live QA account to verify signup, login, the library and closed-generation response; delete only the recorded QA user afterwards. QA reports are saved under ignored `output/playwright/`.
+
+**Cloudflare hosts the preview release: examples, guides, accounts and private library. Live generation and purchases are forcibly closed on D1**, even if administrator flags change. The Node task processor and Docker validation service remain local configurations; interactive credit transactions are rejected on D1. Opening generation requires a separately deployed durable processing/validation service, atomic D1 batch implementations or a transactional database, and fresh end-to-end verification. No live billing is enabled by this deployment.
+
 ## Run locally
 
 Requirements: Node.js 22+ and pnpm. SQLite is the default database.

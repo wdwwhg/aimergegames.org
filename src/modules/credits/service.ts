@@ -258,6 +258,7 @@ export async function grantForNewUser(params: {
   const { userId, userEmail, configs } = params;
 
   if (
+    process.env.DATABASE_PROVIDER === 'd1' ||
     configs.game_generation_enabled !== 'true' ||
     configs.game_generation_verified !== 'true' ||
     !configs.openai_api_key ||

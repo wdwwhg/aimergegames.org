@@ -1,0 +1,38 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "aimergegames",
+  "main": ".open-next/worker.js",
+  "account_id": "6fad436334afce9e5d494c74b4ad0ce4",
+  "compatibility_date": "2026-10-16",
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "assets": { "directory": ".open-next/assets", "binding": "ASSETS" },
+  "services": [
+    { "binding": "WORKER_SELF_REFERENCE", "service": "aimergegames" },
+  ],
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "aimergegames-db",
+      "database_id": "3a6a5d2e-4554-4e33-8332-884f76ba9127",
+      "migrations_dir": "cloudflare/migrations",
+    },
+  ],
+  "kv_namespaces": [
+    {
+      "binding": "NEXT_INC_CACHE_KV",
+      "id": "8e43aa306a5846608c10bb31a4fc1819",
+    },
+  ],
+  "workers_dev": false,
+  "keep_names": false,
+  "routes": [{ "pattern": "aimergegames.org", "custom_domain": true }],
+  "preview_urls": false,
+  "vars": {
+    "NEXT_PUBLIC_APP_URL": "https://aimergegames.org",
+    "NEXT_PUBLIC_APP_NAME": "AI Merge Games",
+    "NEXT_PUBLIC_GAME_RUNNER_ORIGIN": "https://aimergegames-player.jokemike75.workers.dev",
+    "DATABASE_PROVIDER": "d1",
+    "AUTH_URL": "https://aimergegames.org",
+    "GAME_PAYMENT_TEST_MODE": "false",
+  },
+}

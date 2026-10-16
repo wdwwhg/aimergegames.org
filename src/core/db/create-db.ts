@@ -137,7 +137,13 @@ function withSqliteCompat<T extends object>(
     get(target, prop, receiver) {
       if (prop === 'transaction') {
         if (provider === 'd1') {
-          return (fn: any) => fn(proxied);
+          // D1 has atomic batch statements, not interactive transactions. Never
+          // pretend that debit/refund callbacks are atomic on this deployment.
+          return () => {
+            throw new Error(
+              'Interactive transactions require the local job database; generation and purchases are closed on D1.'
+            );
+          };
         }
         const original = Reflect.get(target, prop, receiver);
         if (typeof original !== 'function') return original;

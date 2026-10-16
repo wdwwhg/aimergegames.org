@@ -67,6 +67,20 @@ test('launch gates stay closed unless credentials and verification are present',
   };
   assert.equal(generationAvailable(c), true);
   assert.equal(purchasesAvailable(c), false);
+  process.env.DATABASE_PROVIDER = 'd1';
+  try {
+    assert.equal(generationAvailable(c), false);
+    assert.equal(
+      purchasesAvailable({
+        ...c,
+        game_purchases_enabled: 'true',
+        game_payments_verified: 'true',
+      }),
+      false
+    );
+  } finally {
+    process.env.DATABASE_PROVIDER = 'sqlite';
+  }
 });
 test('validates names and prevents the same inspiration twice', () => {
   assert.equal(

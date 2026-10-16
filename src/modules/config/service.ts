@@ -18,6 +18,25 @@ export function invalidateCache() {
   cacheTime = 0;
 }
 
+async function applyD1ConfigBatch(
+  entries: [string, string][],
+  toDelete: string[] = []
+) {
+  const client = db();
+  const statements = [
+    ...toDelete.map((name) =>
+      client.delete(config).where(eq(config.name, name))
+    ),
+    ...entries.map(([name, value]) =>
+      client
+        .insert(config)
+        .values({ name, value })
+        .onConflictDoUpdate({ target: config.name, set: { value } })
+    ),
+  ];
+  if (statements.length) await client.batch(statements);
+}
+
 /**
  * Get all configs from database.
  */
@@ -146,21 +165,24 @@ export async function saveConfigs(configs: ConfigMap) {
     return;
   }
 
-  await db().transaction(async (tx: any) => {
-    for (const [name, value] of entries) {
-      const [existing] = await tx
-        .select()
-        .from(config)
-        .where(eq(config.name, name))
-        .limit(1);
+  if (envConfigs.database_provider === 'd1') {
+    await applyD1ConfigBatch(entries);
+  } else
+    await db().transaction(async (tx: any) => {
+      for (const [name, value] of entries) {
+        const [existing] = await tx
+          .select()
+          .from(config)
+          .where(eq(config.name, name))
+          .limit(1);
 
-      if (existing) {
-        await tx.update(config).set({ value }).where(eq(config.name, name));
-      } else {
-        await tx.insert(config).values({ name, value });
+        if (existing) {
+          await tx.update(config).set({ value }).where(eq(config.name, name));
+        } else {
+          await tx.insert(config).values({ name, value });
+        }
       }
-    }
-  });
+    });
 
   // Invalidate cache
   cachedConfigs = null;
@@ -268,23 +290,26 @@ export async function replaceCustomConfigs(
       )
   );
 
-  await db().transaction(async (tx: any) => {
-    for (const name of toDelete) {
-      await tx.delete(config).where(eq(config.name, name));
-    }
-    for (const [name, value] of entries) {
-      const [existing] = await tx
-        .select()
-        .from(config)
-        .where(eq(config.name, name))
-        .limit(1);
-      if (existing) {
-        await tx.update(config).set({ value }).where(eq(config.name, name));
-      } else {
-        await tx.insert(config).values({ name, value });
+  if (envConfigs.database_provider === 'd1') {
+    await applyD1ConfigBatch(entries, toDelete);
+  } else
+    await db().transaction(async (tx: any) => {
+      for (const name of toDelete) {
+        await tx.delete(config).where(eq(config.name, name));
       }
-    }
-  });
+      for (const [name, value] of entries) {
+        const [existing] = await tx
+          .select()
+          .from(config)
+          .where(eq(config.name, name))
+          .limit(1);
+        if (existing) {
+          await tx.update(config).set({ value }).where(eq(config.name, name));
+        } else {
+          await tx.insert(config).values({ name, value });
+        }
+      }
+    });
 
   // Invalidate cache
   cachedConfigs = null;

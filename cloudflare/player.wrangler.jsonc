@@ -1,0 +1,10 @@
+{
+  "$schema": "../node_modules/wrangler/config-schema.json",
+  "name": "aimergegames-player",
+  "main": "game-player.mjs",
+  "account_id": "6fad436334afce9e5d494c74b4ad0ce4",
+  "compatibility_date": "2026-10-16",
+  "workers_dev": true,
+  "keep_names": false,
+  "preview_urls": false,
+}
