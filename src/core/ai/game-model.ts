@@ -45,7 +45,9 @@ export async function requestGameModel(
       base.toString().replace(/\/+$/, '') + '/chat/completions',
       {
         method: 'POST',
-        redirect: 'error',
+        // Workers supports manual/follow but rejects redirect:error. Inspect
+        // redirects ourselves so Authorization is never sent to another URL.
+        redirect: 'manual',
         signal: requestSignal,
         headers: {
           'Content-Type': 'application/json',
@@ -73,6 +75,10 @@ export async function requestGameModel(
   }
   if (!response.ok) {
     await response.body?.cancel();
+    if (response.status >= 300 && response.status < 400)
+      throw new Error(
+        `${provider} redirected the request. Configure the final API endpoint; redirects are blocked to protect the API key.`
+      );
     const reasons: Record<number, string> = {
       400: 'rejected the model or request parameters',
       401: 'rejected the API key',

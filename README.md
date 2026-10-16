@@ -111,6 +111,8 @@ The adapter calls `/chat/completions` with `response_format: json_object`, `stre
 
 Official references checked October 16, 2026: [API and model ID](https://api-docs.deepseek.com/), [thinking and request parameters](https://api-docs.deepseek.com/api/create-chat-completion/), [JSON output](https://api-docs.deepseek.com/guides/json_mode/). Request-contract tests use fixed responses and spend no API balance. Real model acceptance still requires the owner's key and the separately deployed validator/job service.
 
+Requests use manual redirect handling because Workers rejects `redirect: error`. Any redirect fails without following its destination or forwarding the API key.
+
 Generation remains closed until **both** `game_generation_enabled` and `game_generation_verified` are true and the three model settings are present. Verify model generation, isolated validation, repairs, refunds, restart and downloads before setting the verified flag.
 
 Users registered after opening generation receive two trial credits by default. The initial-credit settings can adjust that amount and expiry; do not change them without updating the public trial copy. Accounts created while generation is closed receive no automatic trial grant; use the administrator credit tool when testing those existing accounts.

@@ -32,7 +32,7 @@ test('DeepSeek game generation uses the official model, JSON and non-thinking mo
     'fetch',
     async (url: string, options: RequestInit) => {
       assert.equal(url, 'https://api.deepseek.com/chat/completions');
-      assert.equal(options.redirect, 'error');
+      assert.equal(options.redirect, 'manual');
       assert.equal(
         (options.headers as Record<string, string>).Authorization,
         'Bearer ' + config.openai_api_key
@@ -216,4 +216,21 @@ test('the per-request deadline reports a timeout without exposing transport deta
     requestGameModel(config, messages, signal()),
     /DeepSeek request timed out after 60 seconds/
   );
+});
+
+test('redirects are refused without forwarding the API key to another endpoint', async () => {
+  const fetch = mock.method(
+    globalThis,
+    'fetch',
+    async () =>
+      new Response(null, {
+        status: 302,
+        headers: { Location: 'https://untrusted.example.test' },
+      })
+  );
+  await assert.rejects(
+    requestGameModel(config, messages, signal()),
+    /redirects are blocked to protect the API key/
+  );
+  assert.equal(fetch.mock.callCount(), 1);
 });
