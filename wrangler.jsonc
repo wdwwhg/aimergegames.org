@@ -8,6 +8,7 @@
   "assets": { "directory": ".open-next/assets", "binding": "ASSETS" },
   "services": [
     { "binding": "WORKER_SELF_REFERENCE", "service": "aimergegames" },
+    { "binding": "GAME_VALIDATOR", "service": "aimergegames-validator" },
   ],
   "d1_databases": [
     {

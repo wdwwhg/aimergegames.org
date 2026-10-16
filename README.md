@@ -22,12 +22,14 @@ The public preview is hosted on Cloudflare Workers with a dedicated D1 database:
 - App configuration: `wrangler.jsonc`; player configuration: `cloudflare/player.wrangler.jsonc`.
 - Public prerendered pages use a dedicated Cloudflare KV incremental cache; account and private game data use D1.
 - Generation queue: `aimergegames-generation`; background consumer: `aimergegames-tasks` (`cloudflare/tasks.wrangler.jsonc`).
+- Private browser validator: `aimergegames-validator` (`cloudflare/validator.wrangler.jsonc`). It has only a Browser Run binding, with no database or provider secrets.
 
 Authenticate with `pnpm exec wrangler login`, then deploy changes:
 
 ```text
 pnpm cf:build
 pnpm cf:deploy:player
+pnpm cf:deploy:validator
 pnpm cf:deploy
 pnpm cf:deploy:tasks
 ```
@@ -44,15 +46,17 @@ Generate schema changes with `pnpm db:generate:cloudflare`, review the SQL in `c
 
 Verify D1 config encryption and writes locally with `pnpm exec wrangler d1 migrations apply aimergegames-db --local`, then `pnpm test:cloudflare-db`. Run `pnpm test:cloudflare-browser` to check public layouts, examples and indexing URLs. The optional `node scripts/cloudflare-check.mjs --account` also creates a disposable live QA account to verify signup, login, the library and closed-generation response; delete only the recorded QA user afterwards. QA reports are saved under ignored `output/playwright/`.
 
-**Cloudflare hosts the preview release: examples, guides, accounts and private library. Live generation and purchases remain closed on D1**, even if administrator flags change. The production task backend uses a durable queue and a private RPC processor. Native D1 batches handle game-job debits, saves and refunds; interactive transactions remain rejected for other business flows. The isolated validator still needs deployment and end-to-end acceptance before public generation can open. No live billing is enabled by this deployment.
+**Cloudflare hosts the preview release: examples, guides, accounts and private library. Live generation and purchases remain closed on D1**, even if administrator flags change. The production task backend uses a durable queue and a private RPC processor. Native D1 batches handle game-job debits, saves and refunds; interactive transactions remain rejected for other business flows. The app calls the isolated validator through its private `GAME_VALIDATOR` service binding. Backend generation acceptance has passed; public launch acceptance remains separate. No live billing is enabled by this deployment.
 
 The app entrypoint is `cloudflare/app-worker.mjs`, which preserves the generated OpenNext exports and adds a named `GameTaskEntrypoint`. Only the task consumer's service binding can call its processing/recovery methods; no HTTP endpoint exposes them. Model credentials remain encrypted in the app database and are never placed in queue messages. The task consumer has no public route or provider secret.
 
 Deploy the main app before the consumer so the named RPC entrypoint exists. On first setup create the queue with `wrangler queues create aimergegames-generation --message-retention-period-secs 3600`. The consumer processes one message per batch with concurrency capped at two. Duplicate deliveries cannot claim an active job. A cron runs every minute to refund expired jobs and republish pending jobs whose initial delivery was interrupted. An interrupted model request is not restarted by queue redelivery; its job expires and refunds. Queue and cron usage follow the existing Cloudflare account plan.
 
-Run `pnpm test:game-d1` for an isolated local D1 integration test covering atomic rollback, concurrent submission, FIFO debits, repeated refunds, leases, late completion, queue failure, recovery and a fixed-response model/validator pipeline. It creates a separate local database and never sends real model requests. Missing validator bindings fail before a model call and return the consumed credit. The future `GAME_VALIDATOR` service binding accepts only generated code and returns a bounded PNG preview after isolated startup checks.
+Run `pnpm test:game-d1` for an isolated local D1 integration test covering atomic rollback, concurrent submission, FIFO debits, repeated refunds, leases, late completion, queue failure, recovery and a fixed-response model/validator pipeline. It creates a separate local database and never sends real model requests. Missing validator bindings fail before a model call and return the consumed credit. The `GAME_VALIDATOR` service binding accepts only generated code and returns a bounded PNG preview after isolated startup checks.
 
 Live task-backend acceptance was completed on October 17, 2026. Queue delivery reached the private processor; repeated deliveries returned the consumed credit only once. The cron recovered a pending job that had never been published to the queue, and separately expired an unclaimed overdue job with one refund. All three disposable accounts and their associated credits, jobs and games were removed after verification. These checks made no model requests. Public generation and purchases remain closed pending production isolated validation and full generated-game acceptance.
+
+Later on October 17, 2026, the private validator and its app binding were deployed. Live browser checks passed for all three examples, invalid code, an infinite loop followed by a healthy new session, restricted game APIs and a browser-service guardrails 403 for an external request. A real queued task used the owner's saved official DeepSeek configuration to generate **Vault of Ember**, passed isolated validation and atomically saved one private artifact with one consumed credit. The disposable task account and all related records were removed. No browser sessions remained after verification. Production build, fixed-response model/credit tests, D1 integration, and public layout/example checks also passed. Public generation and purchases remain closed for launch acceptance and payment setup.
 
 ## Run locally
 
@@ -96,7 +100,13 @@ The runner binds only to the local loopback interface. To use a different applic
 
 ## Isolated startup validation
 
-Docker is required to validate newly generated code. It is not needed to play the included examples.
+Production uses Cloudflare Browser Run with the official pinned `@cloudflare/playwright` driver. Each check launches a new browser session and context with no saved cookies, account data, application files or model credentials. Generated code runs in the shared Canvas Web Worker runtime. The validator is private: no custom domain, `workers.dev` route or preview URL exposes it.
+
+The browser session is created with `guardrails: {allowedDomains: []}` to deny all external HTTP/HTTPS requests at the browser service. CSP, request interception, blocked WebSockets and disabled worker network APIs provide additional restrictions. No application page is visited. Checks cover first frame, visible response to directional input, runtime errors, action input and restart, then return a PNG. Browser checks have an 18-second deadline; the service has a 22-second overall deadline and closes the browser afterwards. Sessions are never reused. A 30-second idle expiry also limits abandoned sessions. Passing startup checks is not a full gameplay or security audit.
+
+Run `pnpm test:game-validator` with Chrome installed for the shared checks against the three examples, invalid code, an infinite loop, cancellation deadlines, isolation, endpoint guards and safe errors. This test spends no model balance. Production browser isolation is managed by Cloudflare; it does not enforce the local Docker configuration's specific CPU or memory quota. [Browser session guardrails](https://developers.cloudflare.com/browser-run/features/guardrails/) and [pricing](https://developers.cloudflare.com/browser-run/pricing/) were reviewed October 17, 2026. Browser usage follows the existing Workers Paid plan: 10 browser-hours/month included, then $0.09/hour, with separate concurrency charges above the included monthly average of 10. The generation consumer remains capped at two concurrent jobs.
+
+The local validation coordinator retains a separate Docker option. Docker is not needed to play included examples or use the deployed validator.
 
 ```text
 docker build -f scripts/validator/Dockerfile -t ai-merge-validator .
@@ -105,7 +115,7 @@ pnpm dev:validator
 
 The coordinator binds to `127.0.0.1:3002`. Each check starts a disposable container with no network, no application files or secrets, a read-only filesystem, one CPU, a 512 MB memory limit and a 20-second deadline. Only the generated code is passed through stdin. Chromium checks first render, movement, runtime errors and restart, then returns a PNG preview.
 
-The coordinator requires a working Docker daemon. Do not replace it with in-process evaluation of model code. Docker validation could not be run on the development host used for this implementation because Docker was unavailable. The container configuration is supplied; validate it on a Docker-capable host before opening real generation.
+The coordinator requires a working Docker daemon. Do not replace it with in-process evaluation of model code. Docker validation could not be run on this development host because Docker was unavailable. Its container configuration is supplied for local use; production uses the separately deployed browser service described above.
 
 ## Model configuration and opening generation
 
@@ -119,11 +129,11 @@ The selected provider is the official DeepSeek API. Its non-secret defaults are 
 
 The adapter calls `/chat/completions` with `response_format: json_object`, `stream: false`, a 10,000-token output limit and a 60-second deadline. On `api.deepseek.com` it explicitly sends `thinking: {type: disabled}`; other compatible endpoints do not receive DeepSeek-only parameters. The administrator connection test uses the same transport and JSON mode with a 256-token budget. It proves API access and valid JSON, not playable-game quality. Invalid keys, insufficient balance, rate limits, truncated/empty/malformed output and oversized responses fail explicitly. Automatic repair remains capped at one retry.
 
-Official references checked October 16, 2026: [API and model ID](https://api-docs.deepseek.com/), [thinking and request parameters](https://api-docs.deepseek.com/api/create-chat-completion/), [JSON output](https://api-docs.deepseek.com/guides/json_mode/). Request-contract tests use fixed responses and spend no API balance. Full generated-game acceptance still requires a production isolated validator; the owner's key and task backend are already configured.
+Official references checked October 16, 2026: [API and model ID](https://api-docs.deepseek.com/), [thinking and request parameters](https://api-docs.deepseek.com/api/create-chat-completion/), [JSON output](https://api-docs.deepseek.com/guides/json_mode/). Request-contract tests use fixed responses and spend no API balance. The owner's key, task backend and production validator are configured; a real backend generation has passed as recorded above. Public launch acceptance remains separate.
 
 Requests use manual redirect handling because Workers rejects `redirect: error`. Any redirect fails without following its destination or forwarding the API key.
 
-On October 16, 2026, the deployed administrator connection check successfully called the official `deepseek-flash` model using the owner's encrypted saved key and received valid JSON. This verifies API connectivity and JSON mode only; real generated-game acceptance and public generation remain pending production isolated validation and end-to-end verification. The production task backend and atomic D1 credit handling are deployed as described above. The temporary network-diagnostic Worker was removed.
+On October 16, 2026, the deployed administrator connection check successfully called the official `deepseek-flash` model using the owner's encrypted saved key and received valid JSON. That check verified API connectivity and JSON mode only. The subsequent real backend generation, isolated validator and atomic D1 acceptance are recorded above. The temporary network-diagnostic Worker was removed.
 
 Generation remains closed until **both** `game_generation_enabled` and `game_generation_verified` are true and the three model settings are present. Verify model generation, isolated validation, repairs, refunds, restart and downloads before setting the verified flag.
 
@@ -182,4 +192,4 @@ Melty descriptions are attributed to its public homepage and FAQ, reviewed Octob
 
 ## Before opening paid generation
 
-The public preview and task backend are deployed on Cloudflare as described above. Real generation still needs a production isolated validator and end-to-end verification. Paid access additionally needs verified production payment transactions, published commercial terms, operator identity and support contact. Use generated/reviewed database migrations for production rather than `db:push`.
+The public preview, task backend and isolated browser validator use Cloudflare as described above. The backend has passed a real generation task; public launch still requires acceptance of account/trial-credit flows, the complete user journey and the opening gates. Paid access additionally needs verified production payment transactions, published commercial terms, operator identity and support contact. Use generated/reviewed database migrations for production rather than `db:push`.

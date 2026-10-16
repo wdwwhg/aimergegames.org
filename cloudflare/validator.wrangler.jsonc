@@ -1,0 +1,12 @@
+{
+  "$schema": "../node_modules/wrangler/config-schema.json",
+  "name": "aimergegames-validator",
+  "main": "validator-worker.mjs",
+  "account_id": "6fad436334afce9e5d494c74b4ad0ce4",
+  "compatibility_date": "2026-10-16",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": false,
+  "preview_urls": false,
+  "keep_names": false,
+  "browser": { "binding": "BROWSER" },
+}
