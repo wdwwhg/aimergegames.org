@@ -21,6 +21,7 @@ The public preview is hosted on Cloudflare Workers with a dedicated D1 database:
 - Isolated player: https://aimergegames-player.jokemike75.workers.dev
 - App configuration: `wrangler.jsonc`; player configuration: `cloudflare/player.wrangler.jsonc`.
 - Public prerendered pages use a dedicated Cloudflare KV incremental cache; account and private game data use D1.
+- Generation queue: `aimergegames-generation`; background consumer: `aimergegames-tasks` (`cloudflare/tasks.wrangler.jsonc`).
 
 Authenticate with `pnpm exec wrangler login`, then deploy changes:
 
@@ -28,6 +29,7 @@ Authenticate with `pnpm exec wrangler login`, then deploy changes:
 pnpm cf:build
 pnpm cf:deploy:player
 pnpm cf:deploy
+pnpm cf:deploy:tasks
 ```
 
 The project uses the patched Next.js 16.4.1 release. A tracked pnpm patch omits native Sharp from the Worker bundle; site images and the social preview are static assets. The postbuild step inlines the middleware manifest required by the adapter. These compatibility changes do not affect the normal local Node build.
@@ -42,7 +44,13 @@ Generate schema changes with `pnpm db:generate:cloudflare`, review the SQL in `c
 
 Verify D1 config encryption and writes locally with `pnpm exec wrangler d1 migrations apply aimergegames-db --local`, then `pnpm test:cloudflare-db`. Run `pnpm test:cloudflare-browser` to check public layouts, examples and indexing URLs. The optional `node scripts/cloudflare-check.mjs --account` also creates a disposable live QA account to verify signup, login, the library and closed-generation response; delete only the recorded QA user afterwards. QA reports are saved under ignored `output/playwright/`.
 
-**Cloudflare hosts the preview release: examples, guides, accounts and private library. Live generation and purchases are forcibly closed on D1**, even if administrator flags change. The Node task processor and Docker validation service remain local configurations; interactive credit transactions are rejected on D1. Opening generation requires a separately deployed durable processing/validation service, atomic D1 batch implementations or a transactional database, and fresh end-to-end verification. No live billing is enabled by this deployment.
+**Cloudflare hosts the preview release: examples, guides, accounts and private library. Live generation and purchases remain closed on D1**, even if administrator flags change. The production task backend uses a durable queue and a private RPC processor. Native D1 batches handle game-job debits, saves and refunds; interactive transactions remain rejected for other business flows. The isolated validator still needs deployment and end-to-end acceptance before public generation can open. No live billing is enabled by this deployment.
+
+The app entrypoint is `cloudflare/app-worker.mjs`, which preserves the generated OpenNext exports and adds a named `GameTaskEntrypoint`. Only the task consumer's service binding can call its processing/recovery methods; no HTTP endpoint exposes them. Model credentials remain encrypted in the app database and are never placed in queue messages. The task consumer has no public route or provider secret.
+
+Deploy the main app before the consumer so the named RPC entrypoint exists. On first setup create the queue with `wrangler queues create aimergegames-generation --message-retention-period-secs 3600`. The consumer processes one message per batch with concurrency capped at two. Duplicate deliveries cannot claim an active job. A cron runs every minute to refund expired jobs and republish pending jobs whose initial delivery was interrupted. An interrupted model request is not restarted by queue redelivery; its job expires and refunds. Queue and cron usage follow the existing Cloudflare account plan.
+
+Run `pnpm test:game-d1` for an isolated local D1 integration test covering atomic rollback, concurrent submission, FIFO debits, repeated refunds, leases, late completion, queue failure, recovery and a fixed-response model/validator pipeline. It creates a separate local database and never sends real model requests. Missing validator bindings fail before a model call and return the consumed credit. The future `GAME_VALIDATOR` service binding accepts only generated code and returns a bounded PNG preview after isolated startup checks.
 
 ## Run locally
 
@@ -123,11 +131,11 @@ Users registered after opening generation receive two trial credits by default. 
 
 - A generation request includes a UUID idempotency key.
 - A unique active-user constraint allows one unfinished job per account.
-- Job creation and credit consumption share a transaction.
+- Job creation and credit consumption share a transaction (SQLite) or a native atomic batch (D1).
 - The 180-second deadline starts at submission. Each model call is limited to 60 seconds. At most one repair is attempted.
 - The worker claims jobs with a compare-and-set update. Its lease token prevents stale workers from committing results.
-- Failed and expired jobs restore their consumed credit once inside the same transaction.
-- Jobs are durable across page reloads and worker restarts. A stopped worker resumes expiry processing when restarted; refunds are not processed while every worker is offline.
+- Failed and expired jobs restore their consumed credit once inside the same transaction or D1 batch.
+- Jobs are durable across page reloads and worker restarts. The cloud cron refunds expired jobs even when no browser is open. Locally, the Node worker processes expiry after restart.
 - Games are private by default and soft-deleted from the library.
 
 The generated contract is `createGame({canvas, ctx, width, height})`, returning `update(dt,input)`, `draw()` and `getState()`. Game logic runs in an OffscreenCanvas worker on the separate player origin. Network access is blocked by CSP; the worker has no DOM or account credentials. A watchdog terminates an unresponsive worker. This constrains browser-side execution but does not provide a browser memory quota.
@@ -172,4 +180,4 @@ Melty descriptions are attributed to its public homepage and FAQ, reviewed Octob
 
 ## Before opening paid generation
 
-The public preview is deployed on Cloudflare as described above. Real generation still needs a production task processor, a Docker-capable isolated validator, atomic credit transactions, provider credentials and end-to-end verification. Paid access additionally needs published commercial terms, operator identity and support contact. Use generated/reviewed database migrations for production rather than `db:push`.
+The public preview and task backend are deployed on Cloudflare as described above. Real generation still needs a production isolated validator and end-to-end verification. Paid access additionally needs verified production payment transactions, published commercial terms, operator identity and support contact. Use generated/reviewed database migrations for production rather than `db:push`.

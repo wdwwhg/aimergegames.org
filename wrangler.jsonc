@@ -1,7 +1,7 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "aimergegames",
-  "main": ".open-next/worker.js",
+  "main": "cloudflare/app-worker.mjs",
   "account_id": "6fad436334afce9e5d494c74b4ad0ce4",
   "compatibility_date": "2026-10-16",
   "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
@@ -27,6 +27,11 @@
   "keep_names": false,
   "routes": [{ "pattern": "aimergegames.org", "custom_domain": true }],
   "preview_urls": false,
+  "queues": {
+    "producers": [
+      { "binding": "GAME_TASK_QUEUE", "queue": "aimergegames-generation" },
+    ],
+  },
   "vars": {
     "NEXT_PUBLIC_APP_URL": "https://aimergegames.org",
     "NEXT_PUBLIC_APP_NAME": "AI Merge Games",

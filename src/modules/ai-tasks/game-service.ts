@@ -1,7 +1,9 @@
 // AI task orchestration owns credit operations, as in ai-tasks/service.ts.
 import { and, asc, eq, inArray, lt } from 'drizzle-orm';
 
+import { dispatchGameJob } from '@/core/ai/game-queue';
 import { db } from '@/core/db';
+import { envConfigs } from '@/config';
 import { game, gameJob } from '@/config/db/schema';
 import { consume, revoke } from '@/modules/credits/service';
 import {
@@ -10,6 +12,13 @@ import {
   type GenerationInput,
 } from '@/lib/games/types';
 import { getUuid } from '@/lib/hash';
+
+import {
+  completeD1GameJob,
+  enqueueD1Game,
+  expireD1GameJobs,
+  failD1GameJob,
+} from './game-d1';
 
 async function lookup(userId: string, key: string) {
   const [job] = await db()
@@ -20,6 +29,23 @@ async function lookup(userId: string, key: string) {
   return job;
 }
 export async function enqueueGame(userId: string, input: GenerationInput) {
+  if (envConfigs.database_provider === 'd1') {
+    const job = await enqueueD1Game(userId, input);
+    if (job.status === 'pending') {
+      try {
+        await dispatchGameJob(job.id);
+      } catch {
+        await failD1GameJob(
+          job.id,
+          'The generation queue was unavailable. Your credit was returned.'
+        );
+        throw new Error(
+          'The generation queue was unavailable. Your credit was returned.'
+        );
+      }
+    }
+    return job;
+  }
   const existing = await lookup(userId, input.idempotencyKey);
   if (existing) return existing;
   try {
@@ -135,6 +161,8 @@ export async function completeGameJob(
   result: GameOutput,
   thumbnail: string
 ) {
+  if (envConfigs.database_provider === 'd1')
+    return completeD1GameJob(id, token, result, thumbnail);
   return db().transaction(async (tx: any) => {
     const [job] = await tx
       .update(gameJob)
@@ -148,23 +176,23 @@ export async function completeGameJob(
       )
       .returning();
     if (!job) return;
-    await tx
-      .insert(game)
-      .values({
-        id: job.id,
-        jobId: job.id,
-        userId: job.userId,
-        title: result.title,
-        summary: result.summary,
-        controls: result.controls,
-        code: result.code,
-        input: job.input,
-        version: 1,
-        thumbnail,
-      });
+    await tx.insert(game).values({
+      id: job.id,
+      jobId: job.id,
+      userId: job.userId,
+      title: result.title,
+      summary: result.summary,
+      controls: result.controls,
+      code: result.code,
+      input: job.input,
+      version: 1,
+      thumbnail,
+    });
   });
 }
 export async function failGameJob(id: string, message: string, token?: string) {
+  if (envConfigs.database_provider === 'd1')
+    return failD1GameJob(id, message, token);
   return db().transaction(async (tx: any) => {
     const [job] = await tx
       .update(gameJob)
@@ -186,6 +214,7 @@ export async function failGameJob(id: string, message: string, token?: string) {
   });
 }
 export async function expireGameJobs() {
+  if (envConfigs.database_provider === 'd1') return expireD1GameJobs();
   const stale = await db()
     .select()
     .from(gameJob)

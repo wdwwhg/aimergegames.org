@@ -9,7 +9,7 @@ type D1Database = {
   dump(): Promise<ArrayBuffer>;
 };
 
-function getD1Binding(): D1Database {
+export function getD1Binding(): D1Database {
   const { env } = getCloudflareContext();
   const binding = (env as unknown as { DB?: D1Database }).DB;
   if (!binding) throw new Error('Cloudflare D1 binding DB is not configured.');

@@ -31,6 +31,8 @@
     "cf:build": "node scripts/cloudflare-build.mjs",
     "cf:deploy": "wrangler deploy",
     "cf:deploy:player": "wrangler deploy --config cloudflare/player.wrangler.jsonc",
+    "cf:deploy:tasks": "wrangler deploy --config cloudflare/tasks.wrangler.jsonc",
+    "test:game-d1": "node --import tsx tests/game-d1.mjs",
     "db:generate:cloudflare": "drizzle-kit generate --config cloudflare/drizzle.config.ts",
     "db:migrate:cloudflare": "wrangler d1 migrations apply aimergegames-db --remote"
   },

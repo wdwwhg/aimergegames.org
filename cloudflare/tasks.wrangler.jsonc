@@ -1,0 +1,30 @@
+{
+  "$schema": "../node_modules/wrangler/config-schema.json",
+  "name": "aimergegames-tasks",
+  "main": "task-worker.mjs",
+  "account_id": "6fad436334afce9e5d494c74b4ad0ce4",
+  "compatibility_date": "2026-10-16",
+  "workers_dev": false,
+  "preview_urls": false,
+  "keep_names": false,
+  "services": [
+    {
+      "binding": "GAME_PROCESSOR",
+      "service": "aimergegames",
+      "entrypoint": "GameTaskEntrypoint",
+    },
+  ],
+  "queues": {
+    "consumers": [
+      {
+        "queue": "aimergegames-generation",
+        "max_batch_size": 1,
+        "max_batch_timeout": 1,
+        "max_retries": 2,
+        "retry_delay": 10,
+        "max_concurrency": 2,
+      },
+    ],
+  },
+  "triggers": { "crons": ["* * * * *"] },
+}
