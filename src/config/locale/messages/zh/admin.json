@@ -406,8 +406,12 @@
         "description": "对象存储设置"
       },
       "openai": {
-        "title": "OpenAI",
-        "description": "OpenAI（或兼容）API"
+        "title": "DeepSeek / 兼容接口",
+        "description": "DeepSeek V4.1 Flash 游戏生成"
+      },
+      "game_generation": {
+        "title": "游戏生成",
+        "description": "开放前验证完整生成与支付流程"
       },
       "anthropic": {
         "title": "Anthropic",
@@ -507,6 +511,11 @@
       "r2_endpoint": "端点",
       "r2_domain": "公共域名",
       "openai_base_url": "Base URL",
+      "openai_model": "游戏生成模型",
+      "game_generation_enabled": "开放游戏生成",
+      "game_generation_verified": "完整生成流程已验证",
+      "game_purchases_enabled": "开放额度购买",
+      "game_payments_verified": "支付流程已验证",
       "openai_api_key": "API 密钥",
       "anthropic_base_url": "Base URL",
       "anthropic_api_key": "API 密钥",

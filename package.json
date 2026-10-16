@@ -24,7 +24,7 @@
     "dev:validator": "node scripts/game-validator.mjs",
     "dev:worker": "node --env-file=.env.development --import tsx scripts/game-worker.ts",
     "setup:local": "node scripts/local-setup.mjs",
-    "test:games": "tsx --test tests/games.test.ts",
+    "test:games": "tsx --test tests/games.test.ts tests/game-model.test.ts",
     "test:browser": "node scripts/browser-check.mjs",
     "test:cloudflare-db": "node --import tsx tests/cloudflare-db.mjs",
     "test:cloudflare-browser": "node scripts/cloudflare-check.mjs",

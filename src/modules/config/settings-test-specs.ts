@@ -5,6 +5,8 @@
  * Kept in its own file so the client bundle doesn't pull in provider SDKs.
  */
 
+import { gameModelDefaults } from '@/lib/games/model-config';
+
 export interface TestField {
   name: string;
   label: string;
@@ -172,14 +174,14 @@ export const testSpecs: Record<string, TestSpec> = {
         name: 'model',
         label: 'Model',
         type: 'text',
-        defaultValue: 'gpt-4o-mini',
+        defaultValue: gameModelDefaults.openai_model,
         required: true,
       },
       {
         name: 'prompt',
         label: 'Prompt',
         type: 'textarea',
-        defaultValue: 'Reply with a short greeting.',
+        defaultValue: 'Return a JSON object with ok=true and a short greeting.',
         required: true,
       },
     ],

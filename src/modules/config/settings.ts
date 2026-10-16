@@ -5,6 +5,8 @@
  * and they'll automatically appear in the admin panel.
  */
 
+import { gameModelDefaults } from '@/lib/games/model-config';
+
 export interface Setting {
   name: string;
   title: string;
@@ -162,8 +164,9 @@ export function getSettingGroups(): SettingGroup[] {
     // AI
     {
       name: 'openai',
-      title: 'OpenAI',
-      description: 'OpenAI (or compatible) API',
+      title: 'DeepSeek / Compatible API',
+      description:
+        'DeepSeek V4.1 Flash game generation. Enter your API key, save, then test the connection.',
       tab: 'ai',
     },
     {
@@ -229,7 +232,9 @@ export function getSettings(): Setting[] {
       type: 'text',
       group: 'openai',
       tab: 'ai',
-      placeholder: 'Provider model ID',
+      placeholder: gameModelDefaults.openai_model,
+      defaultValue: gameModelDefaults.openai_model,
+      tip: 'DeepSeek V4.1 Flash uses the model ID deepseek-flash on the official API.',
     },
     {
       name: 'game_generation_enabled',
@@ -825,7 +830,9 @@ export function getSettings(): Setting[] {
       name: 'openai_base_url',
       title: 'Base URL',
       type: 'text',
-      placeholder: 'https://api.openai.com/v1',
+      placeholder: gameModelDefaults.openai_base_url,
+      defaultValue: gameModelDefaults.openai_base_url,
+      tip: 'Use https://api.deepseek.com for the official API. Other compatible providers require their own URL and model ID.',
       group: 'openai',
       tab: 'ai',
     },

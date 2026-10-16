@@ -9,6 +9,7 @@
  */
 
 import { FalProvider } from '@/core/ai/fal';
+import { requestGameModel } from '@/core/ai/game-model';
 import { ReplicateProvider } from '@/core/ai/replicate';
 import { AIMediaType } from '@/core/ai/types';
 import { CloudflareEmailProvider } from '@/core/email/cloudflare';
@@ -413,37 +414,28 @@ async function testOpenAI(
   const missing = need(configs, ['openai_api_key']);
   if (missing) return { success: false, message: missing };
 
-  const baseUrl = (
-    configs.openai_base_url || 'https://api.openai.com/v1'
-  ).replace(/\/+$/, '');
-  const resp = await fetch(`${baseUrl}/chat/completions`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${configs.openai_api_key}`,
-    },
-    body: JSON.stringify({
-      model: inputs.model,
-      messages: [{ role: 'user', content: inputs.prompt }],
-      max_tokens: 64,
-    }),
-  });
-
-  const data: any = await resp.json().catch(() => ({}));
-  if (!resp.ok) {
-    return {
-      success: false,
-      message: data?.error?.message || `Request failed (${resp.status})`,
-    };
-  }
-
-  const reply = String(data?.choices?.[0]?.message?.content ?? '').trim();
+  const result = await requestGameModel(
+    { ...configs, openai_model: inputs.model || configs.openai_model },
+    [
+      {
+        role: 'system',
+        content:
+          'Return only a JSON object, for example {"ok":true,"message":"Connected"}. This is an API connection check.',
+      },
+      {
+        role: 'user',
+        content: inputs.prompt || 'Return a short JSON greeting.',
+      },
+    ],
+    new AbortController().signal,
+    256
+  );
   return {
     success: true,
-    message: 'OpenAI accepted the request',
+    message: `${result.provider} connection and JSON output verified. Game generation still requires its separate end-to-end checks.`,
     details: {
-      Model: data?.model || inputs.model,
-      Reply: reply.slice(0, 200) || '(empty)',
+      Model: result.model,
+      Reply: JSON.stringify(result.json).slice(0, 200),
     },
   };
 }

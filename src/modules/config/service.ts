@@ -4,6 +4,7 @@ import { db } from '@/core/db';
 import { envConfigs } from '@/config';
 import { config } from '@/config/db/schema';
 import { decryptSecret, encryptSecret, isEncryptedSecret } from '@/lib/crypto';
+import { gameModelDefaults } from '@/lib/games/model-config';
 
 import { getSettings } from './settings';
 
@@ -82,7 +83,7 @@ export async function getDbConfigs(): Promise<ConfigMap> {
  */
 export async function getAllConfigs(): Promise<ConfigMap> {
   const dbConfigs = await getDbConfigs();
-  return { ...envConfigs, ...dbConfigs };
+  return { ...gameModelDefaults, ...envConfigs, ...dbConfigs };
 }
 
 /**

@@ -1,3 +1,4 @@
+import { requestGameModel } from '@/core/ai/game-model';
 import {
   gameOutput,
   type GameOutput,
@@ -11,77 +12,33 @@ export async function generateGame(
   signal: AbortSignal,
   previous?: { output?: GameOutput; error: string }
 ): Promise<GameOutput> {
-  const base = new URL(configs.openai_base_url);
-  if (
-    base.protocol !== 'https:' &&
-    !(
-      process.env.NODE_ENV !== 'production' &&
-      ['127.0.0.1', 'localhost'].includes(base.hostname)
-    )
-  )
-    throw new Error('Configure an HTTPS model API endpoint.');
-  const response = await fetch(
-    base.toString().replace(/\/+$/, '') + '/chat/completions',
-    {
-      method: 'POST',
-      redirect: 'error',
-      signal: AbortSignal.any([signal, AbortSignal.timeout(60_000)]),
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${configs.openai_api_key}`,
+  const result = await requestGameModel(
+    configs,
+    [
+      { role: 'system', content: system },
+      {
+        role: 'user',
+        content: JSON.stringify({
+          inspirations: [input.gameA, input.gameB],
+          description: input.description,
+          genre: input.genre,
+        }),
       },
-      body: JSON.stringify({
-        model: configs.openai_model,
-        response_format: { type: 'json_object' },
-        max_tokens: 10000,
-        messages: [
-          { role: 'system', content: system },
-          {
-            role: 'user',
-            content: JSON.stringify({
-              inspirations: [input.gameA, input.gameB],
-              description: input.description,
-              genre: input.genre,
-            }),
-          },
-          ...(previous
-            ? [
-                {
-                  role: 'user',
-                  content: JSON.stringify({
-                    repair: previous.error,
-                    previous: previous.output,
-                  }),
-                },
-              ]
-            : []),
-        ],
-      }),
-    }
+      ...(previous
+        ? [
+            {
+              role: 'user' as const,
+              content: JSON.stringify({
+                repair: previous.error,
+                previous: previous.output,
+              }),
+            },
+          ]
+        : []),
+    ],
+    signal
   );
-  if (!response.ok)
-    throw new Error(`Model request failed (${response.status}).`);
-  const length = Number(response.headers.get('content-length') || 0);
-  if (length > 1_000_000) throw new Error('Model response was too large.');
-  const reader = response.body?.getReader();
-  if (!reader) throw new Error('Model returned no response.');
-  let bytes = 0;
-  const chunks: Uint8Array[] = [];
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    bytes += value.length;
-    if (bytes > 1_000_000) {
-      await reader.cancel();
-      throw new Error('Model response was too large.');
-    }
-    chunks.push(value);
-  }
-  const data = JSON.parse(Buffer.concat(chunks).toString());
-  const raw = data?.choices?.[0]?.message?.content;
-  if (typeof raw !== 'string')
-    throw new Error('Model did not return game code.');
-  const output = gameOutput.parse(JSON.parse(raw));
+  const output = gameOutput.parse(result.json);
   if (!/function\s+createGame\s*\(/.test(output.code))
     throw new Error('The game is missing its entry point.');
   return output;

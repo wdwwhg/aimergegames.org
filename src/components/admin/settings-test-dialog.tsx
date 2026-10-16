@@ -43,6 +43,8 @@ export function SettingsTestDialog({
   const [inputs, setInputs] = useState<Record<string, string>>({});
   const [running, setRunning] = useState(false);
   const [result, setResult] = useState<TestResult | null>(null);
+  const configuredModel =
+    group === 'openai' ? configOverrides?.openai_model?.trim() : undefined;
 
   // Reset form + result each time the dialog opens for a new group
   useEffect(() => {
@@ -51,10 +53,11 @@ export function SettingsTestDialog({
     for (const f of spec.fields) {
       if (f.defaultValue) initial[f.name] = f.defaultValue;
     }
+    if (configuredModel) initial.model = configuredModel;
     setInputs(initial);
     setResult(null);
     setRunning(false);
-  }, [open, group, spec]);
+  }, [open, group, spec, configuredModel]);
 
   const canRun = useMemo(
     () => spec.fields.every((f) => !f.required || !!inputs[f.name]?.trim()),

@@ -101,11 +101,15 @@ The coordinator requires a working Docker daemon. Do not replace it with in-proc
 
 In **Admin → Settings → AI**, configure:
 
-- `openai_base_url`: HTTPS base API URL, normally ending in `/v1`.
+- `openai_base_url`: defaults to `https://api.deepseek.com`.
 - `openai_api_key`: the provider key.
-- `openai_model`: a model supporting Chat Completions, JSON-object output and a 10,000-token output budget.
+- `openai_model`: defaults to `deepseek-flash` (DeepSeek V4.1 Flash).
 
-The adapter uses `/chat/completions` with `response_format: json_object`. Confirm compatibility with the selected provider; no model has been selected or tested against a live account.
+The selected provider is the official DeepSeek API. Its non-secret defaults are shared by the game adapter and administrator form. Enter the API key in the **DeepSeek / Compatible API** password field, save, then use **Test**. Keys are encrypted in the production database and masked in the form. No API key is included in source or browser bundles.
+
+The adapter calls `/chat/completions` with `response_format: json_object`, `stream: false`, a 10,000-token output limit and a 60-second deadline. On `api.deepseek.com` it explicitly sends `thinking: {type: disabled}`; other compatible endpoints do not receive DeepSeek-only parameters. The administrator connection test uses the same transport and JSON mode with a 256-token budget. It proves API access and valid JSON, not playable-game quality. Invalid keys, insufficient balance, rate limits, truncated/empty/malformed output and oversized responses fail explicitly. Automatic repair remains capped at one retry.
+
+Official references checked October 16, 2026: [API and model ID](https://api-docs.deepseek.com/), [thinking and request parameters](https://api-docs.deepseek.com/api/create-chat-completion/), [JSON output](https://api-docs.deepseek.com/guides/json_mode/). Request-contract tests use fixed responses and spend no API balance. Real model acceptance still requires the owner's key and the separately deployed validator/job service.
 
 Generation remains closed until **both** `game_generation_enabled` and `game_generation_verified` are true and the three model settings are present. Verify model generation, isolated validation, repairs, refunds, restart and downloads before setting the verified flag.
 
@@ -162,6 +166,6 @@ The English public pages provide canonical URLs, a generated social image, sitem
 
 Melty descriptions are attributed to its public homepage and FAQ, reviewed October 16, 2026. The launcher was not installed or independently security-audited. Keyword search volume is unverified; the implementation makes no traffic or ranking guarantee.
 
-## Before public deployment
+## Before opening paid generation
 
-This delivery is local-only. Production needs a persistent application/database/worker deployment, a distinct game-player origin, a Docker-capable isolated validator, HTTPS, provider credentials, verified generation, published commercial terms, operator identity and support contact. Use generated/reviewed database migrations for production rather than `db:push`.
+The public preview is deployed on Cloudflare as described above. Real generation still needs a production task processor, a Docker-capable isolated validator, atomic credit transactions, provider credentials and end-to-end verification. Paid access additionally needs published commercial terms, operator identity and support contact. Use generated/reviewed database migrations for production rather than `db:push`.

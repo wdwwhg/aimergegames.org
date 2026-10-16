@@ -406,8 +406,12 @@
         "description": "Object storage settings"
       },
       "openai": {
-        "title": "OpenAI",
-        "description": "OpenAI (or compatible) API"
+        "title": "DeepSeek / Compatible API",
+        "description": "DeepSeek V4.1 Flash game generation"
+      },
+      "game_generation": {
+        "title": "Game generation",
+        "description": "Verify generation and payments before opening access"
       },
       "anthropic": {
         "title": "Anthropic",
@@ -507,6 +511,11 @@
       "r2_endpoint": "Endpoint",
       "r2_domain": "Domain",
       "openai_base_url": "Base URL",
+      "openai_model": "Game generation model",
+      "game_generation_enabled": "Enable game generation",
+      "game_generation_verified": "End-to-end generation verified",
+      "game_purchases_enabled": "Enable credit purchases",
+      "game_payments_verified": "Payment flow verified",
       "openai_api_key": "API Key",
       "anthropic_base_url": "Base URL",
       "anthropic_api_key": "API Key",
