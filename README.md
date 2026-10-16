@@ -52,6 +52,8 @@ Deploy the main app before the consumer so the named RPC entrypoint exists. On f
 
 Run `pnpm test:game-d1` for an isolated local D1 integration test covering atomic rollback, concurrent submission, FIFO debits, repeated refunds, leases, late completion, queue failure, recovery and a fixed-response model/validator pipeline. It creates a separate local database and never sends real model requests. Missing validator bindings fail before a model call and return the consumed credit. The future `GAME_VALIDATOR` service binding accepts only generated code and returns a bounded PNG preview after isolated startup checks.
 
+Live task-backend acceptance was completed on October 17, 2026. Queue delivery reached the private processor; repeated deliveries returned the consumed credit only once. The cron recovered a pending job that had never been published to the queue, and separately expired an unclaimed overdue job with one refund. All three disposable accounts and their associated credits, jobs and games were removed after verification. These checks made no model requests. Public generation and purchases remain closed pending production isolated validation and full generated-game acceptance.
+
 ## Run locally
 
 Requirements: Node.js 22+ and pnpm. SQLite is the default database.
@@ -117,11 +119,11 @@ The selected provider is the official DeepSeek API. Its non-secret defaults are 
 
 The adapter calls `/chat/completions` with `response_format: json_object`, `stream: false`, a 10,000-token output limit and a 60-second deadline. On `api.deepseek.com` it explicitly sends `thinking: {type: disabled}`; other compatible endpoints do not receive DeepSeek-only parameters. The administrator connection test uses the same transport and JSON mode with a 256-token budget. It proves API access and valid JSON, not playable-game quality. Invalid keys, insufficient balance, rate limits, truncated/empty/malformed output and oversized responses fail explicitly. Automatic repair remains capped at one retry.
 
-Official references checked October 16, 2026: [API and model ID](https://api-docs.deepseek.com/), [thinking and request parameters](https://api-docs.deepseek.com/api/create-chat-completion/), [JSON output](https://api-docs.deepseek.com/guides/json_mode/). Request-contract tests use fixed responses and spend no API balance. Real model acceptance still requires the owner's key and the separately deployed validator/job service.
+Official references checked October 16, 2026: [API and model ID](https://api-docs.deepseek.com/), [thinking and request parameters](https://api-docs.deepseek.com/api/create-chat-completion/), [JSON output](https://api-docs.deepseek.com/guides/json_mode/). Request-contract tests use fixed responses and spend no API balance. Full generated-game acceptance still requires a production isolated validator; the owner's key and task backend are already configured.
 
 Requests use manual redirect handling because Workers rejects `redirect: error`. Any redirect fails without following its destination or forwarding the API key.
 
-On October 16, 2026, the deployed administrator connection check successfully called the official `deepseek-flash` model using the owner's encrypted saved key and received valid JSON. This verifies API connectivity and JSON mode only; real generated-game acceptance and public generation remain pending the production task/validation services and atomic credit handling. The temporary network-diagnostic Worker was removed.
+On October 16, 2026, the deployed administrator connection check successfully called the official `deepseek-flash` model using the owner's encrypted saved key and received valid JSON. This verifies API connectivity and JSON mode only; real generated-game acceptance and public generation remain pending production isolated validation and end-to-end verification. The production task backend and atomic D1 credit handling are deployed as described above. The temporary network-diagnostic Worker was removed.
 
 Generation remains closed until **both** `game_generation_enabled` and `game_generation_verified` are true and the three model settings are present. Verify model generation, isolated validation, repairs, refunds, restart and downloads before setting the verified flag.
 
