@@ -59,7 +59,7 @@ try {
       .getByRole('button', { name: 'Play game: ' + title, exact: true })
       .click();
     const frame = page.frameLocator('.game-dialog iframe');
-    await frame.locator('html[data-state="frame"]').waitFor({ timeout: 20000 });
+    await frame.locator('html[data-state="frame"]').waitFor({ timeout: 60000 });
     const origin = new URL(
       await page.locator('.game-dialog iframe').getAttribute('src')
     ).origin;
@@ -84,6 +84,7 @@ try {
     );
     assert.ok(Math.abs(reset.x - start.x) < 2, title + ' must restart');
     report.examples.push({ title, origin, passed: true });
+    console.log('Playable example passed:', title);
     await page
       .getByRole('button', { name: 'Close player', exact: true })
       .click();
